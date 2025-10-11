@@ -1,9 +1,5 @@
 # ATM-Management-System-Using-C-Programming
 
-《《《Project Synopsis》》》
-
-# ATM Management System Using C Programming
-
 # —Group Members—
 
 # 1)Aditya Pandey
