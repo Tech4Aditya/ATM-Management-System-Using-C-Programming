@@ -6,10 +6,10 @@
 
 # —Group Members—
 
-1)Aditya Pandey
-2)Akriti Srivastava
-3)Manya Rastogi
-4)Manan Bhatia
+# 1)Aditya Pandey
+# 2)Akriti Srivastava
+# 3)Manya Rastogi
+# 4)Manan Bhatia
 
 # 「 ✦ Brief Description: ✦ 」
 
