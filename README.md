@@ -29,33 +29,33 @@ This project is highly useful for understanding how software can solve real-worl
 by mapping user interactions to data structures and control flows.
 
 # ➤Features:
-# ➤User Authentication
+ ➤User Authentication
 ⤷Login via account number and PIN.
 ⤷Security measure: blocks multiple invalid attempts.
-# ➤Cash Withdrawal
+ ➤Cash Withdrawal
 ⤷Withdraw specified amounts.
 ⤷Ensures sufficient balance is available.
-# ➤Cash Deposit
+ ➤Cash Deposit
 ⤷Deposit money into the account.
 ⤷Updates the account balance in real-time.
-# ➤Balance Enquiry
+ ➤Balance Enquiry
 ⤷Display the current balance.
-# ➤PIN Change
+ ➤PIN Change
 ⤷Allows the user to update their PIN.
-# ➤Mini Statement (optional advanced feature)
+ ➤Mini Statement (optional advanced feature)
 ⤷Shows recent transactions for transparency.
-# ➤Persistent Data Storage
+ ➤Persistent Data Storage
 
 ⤷Stores account information and transactions using file handling.
 
 # ➤Software Requirement Specification (SRS):
-# ➤Software:
+ ➤Software:
 
 # ⓘC Compiler (e.g., GCC)
 
 # ⓘText Editor or IDE (Code::Blocks, Dev-C++, or Visual Studio Code)
 
-# ➤Hardware:
+ ➤Hardware:
 
 # ⓘMinimum 1 GB RAM
 
@@ -63,26 +63,26 @@ by mapping user interactions to data structures and control flows.
 
 # ⓘStorage: 100 MB free space
 
-# ➤Operating System:
+ ➤Operating System:
 
 # ⓘWindows/Linux/MacOS terminal support
 
 # ╰┈➤System Elements &amp; Diagram:
-# Data Structures Used:
-# ➤Structures: Used to define an account with fields like account number, PIN, balance,
+ # Data Structures Used:
+ ➤Structures: Used to define an account with fields like account number, PIN, balance,
 and transaction history.
-# ➤Arrays: Store recent transactions or multiple account details.
+ ➤Arrays: Store recent transactions or multiple account details.
 
 # ➤File Handling: Used to persistently store account information and update records.
 
-Control Flow:
+# Control Flow:
 ➤Decision-making (if-else) for PIN verification, balance checks, and withdrawal limits.
 
 ➤Loops (while/do-while) for repeating menu-driven options until the user exits.
 
 ➤Function calls for modular operations like deposit, withdraw, and balance enquiry.
 
-╰┈➤Class Diagram / Structure Diagram (simplified):
+# ╰┈➤Class Diagram / Structure Diagram (simplified):
 +-----------------+
 | Account |
 +-----------------+
@@ -101,7 +101,7 @@ Control Flow:
 This structure directly maps to real-life ATM functionalities where each account object
 represents a bank customer. Functions act as operations performed at the ATM.
 
-➤Mapping to Real-Life Applications:
+# ➤Mapping to Real-Life Applications:
 
 
 # 「 ✦ Expected Outcome ✦ 」
