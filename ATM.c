@@ -1,0 +1,334 @@
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <stdbool.h>
+#define DATA_FILE "accounts.dat"
+#define MAX_ACCOUNTS 200
+#define MAX_TXNS 10
+#define TXN_STR_LEN 64
+#define PIN_ATTEMPT_LIMIT 3
+
+// =============================================================
+// --- STRUCTURE DEFINITIONS (Manya Rastogi) ---
+// Responsible for defining the data model and utility helpers
+// =============================================================
+
+typedef struct {
+    int accountNumber;
+    int pin;
+    double balance;
+    bool blocked;
+    int txnCount;
+    char transactions[MAX_TXNS][TXN_STR_LEN];
+} Account;
+
+Account accounts[MAX_ACCOUNTS];
+int accountCount = 0;
+
+
+void current_time_str(char *buf, size_t n) {
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    strftime(buf, n, "%Y-%m-%d %H:%M:%S", tm);
+}
+
+// =============================================================
+// --- FILE HANDLING (Manya Rastogi) ---
+// Handles loading and saving accounts from persistent storage
+// =============================================================
+
+void load_accounts() {
+    FILE *fp = fopen(DATA_FILE, "rb");
+    if (!fp) {
+        accountCount = 0;
+        return;
+    }
+    fread(&accountCount, sizeof(int), 1, fp);
+    if (accountCount > 0 && accountCount <= MAX_ACCOUNTS) {
+        fread(accounts, sizeof(Account), accountCount, fp);
+    } else {
+        accountCount = 0;
+    }
+    fclose(fp);
+}
+
+void save_accounts() {
+    FILE *fp = fopen(DATA_FILE, "wb");
+    if (!fp) {
+        printf("Error: unable to open data file for writing.\n");
+        return;
+    }
+    fwrite(&accountCount, sizeof(int), 1, fp);
+    fwrite(accounts, sizeof(Account), accountCount, fp);
+    fclose(fp);
+}
+
+// =============================================================
+// --- ACCOUNT SEARCH & TRANSACTION HISTORY (Akriti Srivastava) ---
+// Akriti handles account lookup and transaction record logic
+// =============================================================
+
+int find_account(int accNo) {
+    for (int i = 0; i < accountCount; ++i) {
+        if (accounts[i].accountNumber == accNo)
+            return i;
+    }
+    return -1;
+}
+
+void add_transaction(Account *acc, const char *desc) {
+    char buf[TXN_STR_LEN];
+    char tstr[32];
+    current_time_str(tstr, sizeof(tstr));
+    snprintf(buf, TXN_STR_LEN, "%s | %s", tstr, desc);
+
+    if (acc->txnCount < MAX_TXNS) {
+        strncpy(acc->transactions[acc->txnCount], buf, TXN_STR_LEN - 1);
+        acc->transactions[acc->txnCount][TXN_STR_LEN - 1] = '\0';
+        acc->txnCount++;
+    } else {
+        for (int i = 1; i < MAX_TXNS; ++i)
+            strncpy(acc->transactions[i - 1], acc->transactions[i], TXN_STR_LEN);
+        strncpy(acc->transactions[MAX_TXNS - 1], buf, TXN_STR_LEN - 1);
+        acc->transactions[MAX_TXNS - 1][TXN_STR_LEN - 1] = '\0';
+    }
+}
+
+// =============================================================
+// --- ACCOUNT CREATION & SETUP (Akriti Srivastava) ---
+// Akriti manages new account creation flow
+// =============================================================
+
+void create_account_interactive() {
+    if (accountCount >= MAX_ACCOUNTS) {
+        printf("Max accounts reached.\n");
+        return;
+    }
+    Account a;
+    printf("Enter new account number (integer): ");
+    scanf("%d", &a.accountNumber);
+    if (find_account(a.accountNumber) != -1) {
+        printf("Account already exists.\n");
+        return;
+    }
+    printf("Set PIN (4-digit): ");
+    scanf("%d", &a.pin);
+    printf("Initial deposit amount: ");
+    scanf("%lf", &a.balance);
+    a.blocked = false;
+    a.txnCount = 0;
+    char desc[TXN_STR_LEN];
+    snprintf(desc, sizeof(desc), "Account created. Initial deposit: %.2f", a.balance);
+    add_transaction(&a, desc);
+    accounts[accountCount++] = a;
+    save_accounts();
+    printf("Account created successfully.\n");
+}
+
+// =============================================================
+// --- CORE ATM OPERATIONS (Aditya Pandey) ---
+// Aditya handles deposit, withdrawal, balance check, and PIN changes
+// =============================================================
+
+void mini_statement(Account *acc) {
+    printf("\n--- Mini Statement for A/C %d ---\n", acc->accountNumber);
+    if (acc->txnCount == 0) {
+        printf("No transactions yet.\n");
+    } else {
+        for (int i = 0; i < acc->txnCount; ++i)
+            printf("%s\n", acc->transactions[i]);
+    }
+    printf("---------------------------------\n");
+}
+
+void check_balance(Account *acc) {
+    printf("Current balance: Rs %.2f\n", acc->balance);
+}
+
+void deposit(Account *acc) {
+    double amt;
+    printf("Enter amount to deposit: ");
+    if (scanf("%lf", &amt) != 1 || amt <= 0) {
+        printf("Invalid amount.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    acc->balance += amt;
+    char desc[TXN_STR_LEN];
+    snprintf(desc, sizeof(desc), "Deposit +%.2f | Bal: %.2f", amt, acc->balance);
+    add_transaction(acc, desc);
+    save_accounts();
+    printf("Deposit successful. New balance: %.2f\n", acc->balance);
+}
+
+void withdraw_amount(Account *acc) {
+    double amt;
+    printf("Enter amount to withdraw: ");
+    if (scanf("%lf", &amt) != 1 || amt <= 0) {
+        printf("Invalid amount.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    if (amt > acc->balance) {
+        printf("Insufficient balance. Current balance: %.2f\n", acc->balance);
+        return;
+    }
+    acc->balance -= amt;
+    char desc[TXN_STR_LEN];
+    snprintf(desc, sizeof(desc), "Withdrawal -%.2f | Bal: %.2f", amt, acc->balance);
+    add_transaction(acc, desc);
+    save_accounts();
+    printf("Please collect cash. New balance: %.2f\n", acc->balance);
+}
+
+void change_pin(Account *acc) {
+    int oldPin, newPin, confirmPin;
+    printf("Enter current PIN: ");
+    scanf("%d", &oldPin);
+    if (oldPin != acc->pin) {
+        printf("Incorrect current PIN.\n");
+        return;
+    }
+    printf("Enter new PIN: ");
+    scanf("%d", &newPin);
+    printf("Confirm new PIN: ");
+    scanf("%d", &confirmPin);
+    if (newPin != confirmPin) {
+        printf("PIN mismatch. Aborting.\n");
+        return;
+    }
+    acc->pin = newPin;
+    add_transaction(acc, "PIN changed");
+    save_accounts();
+    printf("PIN changed successfully.\n");
+}
+
+// =============================================================
+// --- LOGIN SYSTEM (Manan Bhatia) ---
+// Manan handles authentication logic, blocking, and session flow
+// =============================================================
+
+void account_session(Account *acc) {
+    int choice;
+    do {
+        printf("\n--- ATM Menu (A/C %d) ---\n", acc->accountNumber);
+        printf("1. Check Balance\n2. Deposit\n3. Withdraw\n4. Mini-statement\n5. Change PIN\n6. Logout\nEnter choice: ");
+        if (scanf("%d", &choice) != 1) {
+            while (getchar() != '\n');
+            choice = 0;
+        }
+        switch (choice) {
+            case 1: check_balance(acc); break;
+            case 2: deposit(acc); break;
+            case 3: withdraw_amount(acc); break;
+            case 4: mini_statement(acc); break;
+            case 5: change_pin(acc); break;
+            case 6: printf("Logging out...\n"); break;
+            default: printf("Invalid choice.\n");
+        }
+    } while (choice != 6);
+}
+
+void login() {
+    int accNo;
+    printf("Enter account number: ");
+    if (scanf("%d", &accNo) != 1) {
+        while (getchar() != '\n');
+        printf("Invalid input.\n");
+        return;
+    }
+    int idx = find_account(accNo);
+    if (idx == -1) {
+        printf("Account not found.\n");
+        return;
+    }
+    Account *acc = &accounts[idx];
+    if (acc->blocked) {
+        printf("This account is blocked. Please contact bank.\n");
+        return;
+    }
+
+    int attempts = 0;
+    int enteredPin;
+    while (attempts < PIN_ATTEMPT_LIMIT) {
+        printf("Enter PIN: ");
+        if (scanf("%d", &enteredPin) != 1) {
+            while (getchar() != '\n');
+            printf("Invalid input.\n");
+            attempts++;
+            continue;
+        }
+        if (enteredPin == acc->pin) {
+            printf("Authentication successful.\n");
+            account_session(acc);
+            return;
+        } else {
+            attempts++;
+            printf("Incorrect PIN. Attempts left: %d\n", PIN_ATTEMPT_LIMIT - attempts);
+        }
+    }
+    acc->blocked = true;
+    add_transaction(acc, "Account blocked due to failed PIN attempts");
+    save_accounts();
+    printf("Account blocked due to multiple incorrect PIN entries.\n");
+}
+
+// =============================================================
+// --- ADMIN UTILITIES + MAIN MENU (Manan Bhatia + Deployment) ---
+// Manan also responsible for sample account creation & project deployment
+// =============================================================
+
+void create_sample_accounts_if_empty() {
+    if (accountCount > 0) return;
+    Account a1 = {1001, 1234, 5000.0, false, 0, {{0}}};
+    add_transaction(&a1, "Account created. Initial deposit: 5000.00");
+    accounts[accountCount++] = a1;
+
+    Account a2 = {1002, 1111, 12000.5, false, 0, {{0}}};
+    add_transaction(&a2, "Account created. Initial deposit: 12000.50");
+    accounts[accountCount++] = a2;
+
+    Account a3 = {2001, 2222, 250.0, false, 0, {{0}}};
+    add_transaction(&a3, "Account created. Initial deposit: 250.00");
+    accounts[accountCount++] = a3;
+
+    save_accounts();
+}
+
+int main_menu() {
+    int ch;
+    printf("\n--- ATM MANAGEMENT SYSTEM ---\n");
+    printf("1. Login to Account\n");
+    printf("2. Create New Account\n");
+    printf("3. Exit\n");
+    printf("Enter choice: ");
+    if (scanf("%d", &ch) != 1) {
+        while (getchar() != '\n');
+        return 0;
+    }
+    return ch;
+}
+
+// =============================================================
+// --- MAIN FUNCTION (Aditya Pandey) ---
+// Integrates all modules and starts the application
+// =============================================================
+
+int main() {
+    load_accounts();
+    create_sample_accounts_if_empty();
+
+    while (1) {
+        int choice = main_menu();
+        switch (choice) {
+            case 1: login(); break;
+            case 2: create_account_interactive(); break;
+            case 3: printf("Exiting. Goodbye.\n"); exit(0);
+            default: printf("Invalid option.\n");
+        }
+    }
+    return 0;
+}
